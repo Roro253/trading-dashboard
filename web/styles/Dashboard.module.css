@@ -1,0 +1,32 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.banner {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: rgba(248, 113, 113, 0.14);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: #fecaca;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(400px, 2fr);
+  gap: 1.5rem;
+}
+
+.sidebar,
+.mainContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (max-width: 960px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.coverage*
+
+env/
+.env
+
+# Node
+node_modules/
+.next/
+yarn-debug.log*
+yarn-error.log*
+npm-debug.log*
+.pnpm-store/
+
+# Editor/OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Project
+coverage/
+.tmp/

@@ -1,0 +1,25 @@
+:root {
+  color-scheme: dark;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #0b132b;
+  color: #f1f5f9;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top, rgba(32,64,129,0.35), rgba(11,19,43,1) 60%);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+main {
+  padding: 2rem;
+}

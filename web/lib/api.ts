@@ -1,6 +1,11 @@
 import { EnsembleResponse, HistoryResponse, PerformanceResponse } from './types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+const DEFAULT_API_BASE = 'http://localhost:8000';
+const envApiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+if (typeof window !== 'undefined' && !envApiBase) {
+  console.warn('NEXT_PUBLIC_API_BASE_URL missing; defaulting to http://localhost:8000');
+}
+const API_BASE = envApiBase || DEFAULT_API_BASE;
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${API_BASE}${path}`;

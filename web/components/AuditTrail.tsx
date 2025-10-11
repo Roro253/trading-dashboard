@@ -8,6 +8,12 @@ interface AuditTrailProps {
   loading?: boolean;
 }
 
+interface AuditCheck {
+  name: string;
+  status: 'pass' | 'fail';
+  detail: string;
+}
+
 export function AuditTrail({ latest, loading }: AuditTrailProps) {
   if (loading) {
     return <div className={styles.loading}>Loading audit trail...</div>;
@@ -21,6 +27,11 @@ export function AuditTrail({ latest, loading }: AuditTrailProps) {
     | Record<string, unknown>
     | undefined;
   const auditorNotes = notes || (latest.portfolio_snapshot?.auditor_notes as Record<string, unknown> | undefined);
+  const structuredChecks = Array.isArray(
+    (latest.portfolio_snapshot?.auditor_notes as { checks?: AuditCheck[] } | undefined)?.checks,
+  )
+    ? ((latest.portfolio_snapshot?.auditor_notes as { checks?: AuditCheck[] })?.checks ?? [])
+    : [];
   const risk = latest.portfolio_snapshot?.risk as { reasons?: string[] } | undefined;
   const market = latest.portfolio_snapshot?.market as Record<string, unknown> | undefined;
   const previousClose = market?.previous_close as Record<string, unknown> | undefined;
@@ -49,6 +60,18 @@ export function AuditTrail({ latest, loading }: AuditTrailProps) {
         <h4>Auditor Notes</h4>
         {auditorNotes ? (
           <ul>
+            {structuredChecks.length > 0 && (
+              <li>
+                <span>Summary Checks:</span>
+                <ul className={styles.innerList}>
+                  {structuredChecks.map((check) => (
+                    <li key={check.name}>
+                      <strong>{check.name}</strong> — {check.status.toUpperCase()} · {check.detail}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            )}
             {failureModes.length > 0 && (
               <li>
                 <span>Failure Modes:</span>
@@ -60,7 +83,7 @@ export function AuditTrail({ latest, loading }: AuditTrailProps) {
               </li>
             )}
             {Object.entries(auditorNotes)
-              .filter(([key]) => key !== 'failure_modes')
+              .filter(([key]) => key !== 'failure_modes' && key !== 'checks')
               .map(([key, value]) => (
                 <li key={key}>
                   <span>{key}:</span> {JSON.stringify(value)}

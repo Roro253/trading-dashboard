@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { fetchLatestEnsemble } from '../lib/api';
 import type { EnsembleResponse } from '../lib/types';
 import { Panel } from './Panel';
@@ -11,23 +12,50 @@ import { PerformancePanel } from './PerformancePanel';
 import styles from '../styles/Dashboard.module.css';
 
 const DEFAULT_SYMBOL = 'QQQ';
+const FEATURED_SYMBOLS = ['QQQ', 'SPY', 'IWM', 'ARKK', 'NVDA', 'TSLA'];
+const ACADEMY_CARDS = [
+  {
+    title: 'Volatility Arcade',
+    copy: 'Simulate IV crush vs expansion scenarios and learn how Delta and Vega respond.',
+    action: 'Launch simulator',
+  },
+  {
+    title: 'Liquidity Lab',
+    copy: 'Interactive drill on order book depth and slippage during macro events.',
+    action: 'Run lab',
+  },
+  {
+    title: 'Agent Playbook',
+    copy: 'Step inside the Technical agent to explore factor weightings and evidence stacks.',
+    action: 'Explore agent',
+  },
+];
+
+type InsightMode = 'insights' | 'playbook' | 'academy';
 
 export function Dashboard() {
+  const [selectedSymbol, setSelectedSymbol] = useState<string>(DEFAULT_SYMBOL);
   const [latest, setLatest] = useState<EnsembleResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [insightMode, setInsightMode] = useState<InsightMode>('insights');
 
   useEffect(() => {
     let mounted = true;
+
     const load = async () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await fetchLatestEnsemble(DEFAULT_SYMBOL);
-        if (!mounted) return;
+        const data = await fetchLatestEnsemble(selectedSymbol);
+        if (!mounted) {
+          return;
+        }
         setLatest(data);
       } catch (err) {
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         const status = (err as Error & { status?: number })?.status;
         if (status === 404) {
           setLatest(null);
@@ -36,7 +64,9 @@ export function Dashboard() {
           setError(err instanceof Error ? err.message : 'Failed to load latest alert');
         }
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -46,11 +76,320 @@ export function Dashboard() {
       mounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [selectedSymbol]);
+
+  const confidencePct = useMemo(() => Math.round((latest?.confidence ?? 0) * 100), [latest]);
+
+  const ringStyles = useMemo(
+    () =>
+      ({
+        '--confidence': confidencePct,
+      }) as CSSProperties,
+    [confidencePct],
+  );
+
+  const portfolioSnapshot = (latest?.portfolio_snapshot as Record<string, unknown>) ?? null;
+  const marketSnapshot = (portfolioSnapshot?.market as Record<string, unknown>) ?? null;
+  const optionsSnapshot = (marketSnapshot?.options_snapshot as Record<string, unknown>) ?? null;
+  const auditorChecks =
+    ((portfolioSnapshot?.auditor_notes as { checks?: { name: string; status: string; detail: string }[] })?.checks ??
+      []) as { name: string; status: string; detail: string }[];
+  const riskDetails = (portfolioSnapshot?.risk as { reasons?: string[] } | undefined)?.reasons ?? [];
+
+  const agentHighlights = useMemo(() => {
+    const snapshot = (portfolioSnapshot?.agents as Record<string, unknown>) ?? {};
+    return Object.entries(snapshot)
+      .map(([agentKey, raw]) => {
+        const data = (raw ?? {}) as Record<string, unknown>;
+        const decision = typeof data.decision === 'string' ? (data.decision as string) : '—';
+        const confidence = Number(data.confidence ?? 0);
+        const narrative = (data.notes as string | undefined) ?? (data.summary as string | undefined) ?? '';
+        return {
+          agent: agentKey,
+          decision,
+          confidence,
+          narrative,
+        };
+      })
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, 3);
+  }, [portfolioSnapshot]);
+
+  const tapeItems = useMemo(() => {
+    const ivRank = Number(optionsSnapshot?.implied_vol_rank ?? optionsSnapshot?.implied_volatility ?? NaN);
+    const skew = Number(optionsSnapshot?.skew_proxy ?? NaN);
+    const depth = optionsSnapshot?.depth_ok ? 'Depth OK' : 'Depth thin';
+    const volumeDelta = Number(optionsSnapshot?.volume_delta ?? NaN);
+
+    return [
+      {
+        label: `${selectedSymbol} IV`,
+        value: Number.isFinite(ivRank) ? `${(ivRank * 100).toFixed(1)}%` : 'scanning...',
+        tone: ivRank > 0.6 ? 'up' : ivRank > 0.3 ? 'steady' : 'down',
+      },
+      {
+        label: 'Skew Pulse',
+        value: Number.isFinite(skew) ? `${skew.toFixed(2)}` : 'neutral',
+        tone: Math.abs(skew) > 0.5 ? 'up' : 'steady',
+      },
+      {
+        label: 'Liquidity',
+        value: depth,
+        tone: optionsSnapshot?.depth_ok ? 'up' : 'down',
+      },
+      {
+        label: 'Volume Δ',
+        value: Number.isFinite(volumeDelta) ? `${volumeDelta > 0 ? '+' : ''}${volumeDelta.toFixed(0)}` : 'loading',
+        tone: volumeDelta >= 0 ? 'up' : 'down',
+      },
+    ];
+  }, [optionsSnapshot, selectedSymbol]);
+
+  const renderInsightSection = () => {
+    if (insightMode === 'playbook') {
+      const ticket = (latest?.rth_ticket as Record<string, unknown>) ?? null;
+      const entryRules = (ticket?.entry_rules as string[]) ?? [];
+      const stopRules = (ticket?.stop_rules as string[]) ?? [];
+      const targets = (ticket?.targets as string[]) ?? [];
+
+      if (!ticket) {
+        return <div className={styles.emptyState}>We&apos;ll surface a structured play when the agents align on the next opportunity.</div>;
+      }
+
+      return (
+        <div className={styles.playbookGrid}>
+          <div className={styles.playbookColumn}>
+            <h4>Entry Script</h4>
+            <ul>
+              {entryRules.length > 0 ? entryRules.map((rule) => <li key={rule}>{rule}</li>) : <li>Watching price action...</li>}
+            </ul>
+          </div>
+          <div className={styles.playbookColumn}>
+            <h4>Risk Controls</h4>
+            <ul>
+              {stopRules.length > 0 ? stopRules.map((rule) => <li key={rule}>{rule}</li>) : <li>Stops will appear once risk gates unlock.</li>}
+            </ul>
+          </div>
+          <div className={styles.playbookColumn}>
+            <h4>Target Ladder</h4>
+            <ul>
+              {targets.length > 0 ? targets.map((target) => <li key={target}>{target}</li>) : <li>No defined targets until conviction increases.</li>}
+            </ul>
+          </div>
+        </div>
+      );
+    }
+
+    if (insightMode === 'academy') {
+      return (
+        <div className={styles.academyGrid}>
+          {ACADEMY_CARDS.map((card) => (
+            <article key={card.title} className={styles.academyCard}>
+              <header>
+                <h4>{card.title}</h4>
+                <span className={styles.academyBadge}>Interactive</span>
+              </header>
+              <p>{card.copy}</p>
+              <button type="button" className={styles.glassButton}>
+                {card.action}
+              </button>
+            </article>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div className={styles.checkGrid}>
+        {auditorChecks.length > 0 ? (
+          auditorChecks.map((check) => (
+            <article
+              key={check.name}
+              className={`${styles.checkCard} ${check.status === 'fail' ? styles.checkFail : styles.checkPass}`}
+            >
+              <header>
+                <span>{check.name}</span>
+                <span className={styles.checkBadge}>{check.status.toUpperCase()}</span>
+              </header>
+              <p>{check.detail}</p>
+            </article>
+          ))
+        ) : (
+          <article className={styles.checkCard}>
+            <header>
+              <span>Auditor</span>
+              <span className={styles.checkBadge}>LIVE</span>
+            </header>
+            <p>The auditor will light up once we record a fresh run for {selectedSymbol}.</p>
+          </article>
+        )}
+        <article className={styles.checkCard}>
+          <header>
+            <span>Risk Broadcast</span>
+            <span className={styles.checkBadge}>{latest?.risk_pass ? 'CLEAR' : 'WATCH'}</span>
+          </header>
+          {riskDetails.length > 0 ? (
+            <ul className={styles.checkList}>
+              {riskDetails.map((reason) => (
+                <li key={reason}>{reason.replaceAll('_', ' ')}</li>
+              ))}
+            </ul>
+          ) : (
+            <p>Risk desk has no active veto flags.</p>
+          )}
+        </article>
+      </div>
+    );
+  };
 
   return (
     <div className={styles.dashboard}>
       {error && <div className={styles.banner}>{error}</div>}
+
+      <section className={styles.hero}>
+        <div className={styles.heroContent}>
+          <div className={styles.heroLead}>
+            <span className={styles.kicker}>Futuristic Hedge Command • 2025 Edition</span>
+            <h1>Alpha Terminal for Modern Market Tacticians</h1>
+            <p>
+              Command multi-agent intelligence, risk gating, and options telemetry in one neon-lit cockpit. Tap into the
+              flow, learn the playbook, and make the markets feel like a game you&apos;re built to win.
+            </p>
+            <div className={styles.symbolChooser}>
+              {FEATURED_SYMBOLS.map((symbol) => (
+                <button
+                  key={symbol}
+                  type="button"
+                  className={`${styles.symbolButton} ${symbol === selectedSymbol ? styles.symbolActive : ''}`}
+                  onClick={() => setSelectedSymbol(symbol)}
+                  disabled={loading && symbol === selectedSymbol}
+                >
+                  <span>{symbol}</span>
+                  {symbol === selectedSymbol && <span className={styles.symbolPulse} />}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.heroStats}>
+            <div className={styles.confidenceShell}>
+              <div className={styles.confidenceRing} style={ringStyles}>
+                <div className={styles.confidenceValue}>{confidencePct}%</div>
+                <span className={styles.confidenceLabel}>Confidence</span>
+              </div>
+              <p>Weighted by orchestrator portfolio logic &amp; real-time volatility regime.</p>
+            </div>
+            <article
+              className={`${styles.statusCard} ${
+                latest?.risk_pass === false ? styles.statusWarning : styles.statusPositive
+              }`}
+            >
+              <header>
+                <span>Risk Gate</span>
+                <strong>{latest?.risk_pass === false ? 'On Hold' : latest ? 'Greenlit' : 'Awaiting'}</strong>
+              </header>
+              <p>
+                {latest?.risk_pass === false
+                  ? `Primary blocker: ${(riskDetails[0] ?? 'awaiting fresh data').replaceAll('_', ' ')}`
+                  : 'Liquidity, time, and event filters all aligned.'}
+              </p>
+            </article>
+            <article className={styles.statusCard}>
+              <header>
+                <span>Top Agent</span>
+                <strong>{agentHighlights[0]?.agent ?? '—'}</strong>
+              </header>
+              <p>
+                {agentHighlights[0]
+                  ? `${agentHighlights[0].decision} @ ${(agentHighlights[0].confidence * 100).toFixed(0)}% · ${
+                      agentHighlights[0].narrative || 'Confidence pulse stabilising.'
+                    }`
+                  : 'Agent consensus warming up for the next play.'}
+              </p>
+            </article>
+          </div>
+        </div>
+
+        <div className={styles.tickerTape}>
+          <div className={styles.tickerInner}>
+            {[0, 1].flatMap((loop) => tapeItems.map((item) => ({ ...item, key: `${item.label}-${loop}` }))).map((item) => (
+              <span key={item.key} className={`${styles.tickerItem} ${styles[`ticker${item.tone}`]}`}>
+                <strong>{item.label}</strong>
+                <em>{item.value}</em>
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.deck}>
+        <div className={styles.insightDeck}>
+          <article className={styles.insightCard}>
+            <span className={styles.cardEyebrow}>Agent Alignment</span>
+            <h3>{agentHighlights[0]?.decision ?? 'Signal forming'} on {selectedSymbol}</h3>
+            <p>
+              {agentHighlights[1]
+                ? `${agentHighlights[1].agent} backs this move at ${(agentHighlights[1].confidence * 100).toFixed(0)}%.`
+                : 'We\'ll highlight cross-agent consensus as soon as it syncs.'}
+            </p>
+            <footer>
+              {agentHighlights.map((agent) => (
+                <span key={agent.agent} className={styles.agentTag}>
+                  {agent.agent}: {(agent.confidence * 100).toFixed(0)}%
+                </span>
+              ))}
+            </footer>
+          </article>
+
+          <article className={styles.insightCard}>
+            <span className={styles.cardEyebrow}>Market Pulse</span>
+            <h3>Options desk says {optionsSnapshot?.depth_ok ? 'depth stable' : 'watch liquidity'}</h3>
+            <p>
+              IV {optionsSnapshot?.implied_volatility ? (Number(optionsSnapshot.implied_volatility) * 100).toFixed(1) : '—'}
+              % · Skew {optionsSnapshot?.skew_proxy ? Number(optionsSnapshot.skew_proxy).toFixed(2) : '0.00'}
+            </p>
+            <footer>
+              <span className={styles.agentTag}>Open interest Δ {optionsSnapshot?.open_interest_delta ?? '—'}</span>
+            </footer>
+          </article>
+
+          <article className={styles.insightCard}>
+            <span className={styles.cardEyebrow}>Learning Spark</span>
+            <h3>Decode risk like a Wall Street pro</h3>
+            <p>Walk through blackout windows, RTH gatekeeping, and capital allocation heuristics in our Academy.</p>
+            <button type="button" className={styles.glassButton}>
+              Enter the Academy
+            </button>
+          </article>
+        </div>
+
+        <div className={styles.modeSwitch}>
+          <button
+            type="button"
+            className={`${styles.modeButton} ${insightMode === 'insights' ? styles.modeActive : ''}`}
+            onClick={() => setInsightMode('insights')}
+          >
+            Insights
+          </button>
+          <button
+            type="button"
+            className={`${styles.modeButton} ${insightMode === 'playbook' ? styles.modeActive : ''}`}
+            onClick={() => setInsightMode('playbook')}
+          >
+            Playbook
+          </button>
+          <button
+            type="button"
+            className={`${styles.modeButton} ${insightMode === 'academy' ? styles.modeActive : ''}`}
+            onClick={() => setInsightMode('academy')}
+          >
+            Academy
+          </button>
+        </div>
+
+        <div className={styles.modePanel}>{renderInsightSection()}</div>
+      </section>
+
       <div className={styles.grid}>
         <div className={styles.sidebar}>
           <Panel title="Alert Draft" subtitle="RTH Options Playbook">

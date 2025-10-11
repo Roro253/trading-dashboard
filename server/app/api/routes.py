@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+import json
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Iterable
+from typing import Any, AsyncIterator, Dict, Iterable, List
 
 import numpy as np
 import pandas as pd
@@ -9,6 +11,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sse_starlette.sse import EventSourceResponse
 
 from app.api.schemas import (
     EnsembleResponseSchema,
@@ -23,6 +26,7 @@ from app.services.agents.rth_playbook import RTHPlaybookAgent
 from app.services.agents.technical import TechnicalAgent
 from app.services.orchestrator import StrategyOrchestrator, run_all_agents
 from app.services.polygon_client import PolygonClient
+from app.services.stream import get_stream_broker
 
 logger = structlog.get_logger(__name__)
 
@@ -132,6 +136,28 @@ async def get_history(
     }
 
 
+async def ticker_event_stream(ticker: str) -> AsyncIterator[Dict[str, Any]]:
+    channel = ticker.upper()
+    broker = get_stream_broker()
+    heartbeat_seconds = 15
+
+    async with broker.subscribe(channel) as queue:
+        yield {"event": "heartbeat", "data": json.dumps({"ts": datetime.now(timezone.utc).isoformat()})}
+        while True:
+            try:
+                message = await asyncio.wait_for(queue.get(), timeout=heartbeat_seconds)
+            except asyncio.TimeoutError:
+                heartbeat = json.dumps({"ts": datetime.now(timezone.utc).isoformat()})
+                yield {"event": "heartbeat", "data": heartbeat}
+                continue
+            yield {"event": "update", "data": message}
+
+
+@router.get("/api/stream/{ticker}")
+async def stream_ticker_updates(ticker: str) -> EventSourceResponse:
+    return EventSourceResponse(ticker_event_stream(ticker))
+
+
 async def _persist_decisions(
     session: AsyncSession,
     ticker: str,
@@ -146,6 +172,14 @@ async def _persist_decisions(
         if risk.get("pass"):
             await _persist_alert(session, ticker, market, overall, results, risk)
         await session.commit()
+        payload = {
+            "ticker": ticker,
+            "overall": _jsonable(overall),
+            "agents": _jsonable(results),
+            "risk": _jsonable(risk),
+            "ts": _last_timestamp(market.get("bars_5m")).isoformat(),
+        }
+        await get_stream_broker().publish(ticker, payload)
     except Exception as exc:  # noqa: BLE001
         await session.rollback()
         logger.exception("api.run.persist_failed", ticker=ticker, error=str(exc))
@@ -197,8 +231,29 @@ async def _persist_alert(
     bars: pd.DataFrame | None = market.get("bars_5m")
     event_ts = _last_timestamp(bars)
 
+    raw_auditor_notes = overall.get("auditor_notes") or {}
+    if overall.get("method") == "auditor_override":
+        raw_auditor_notes = {
+            **raw_auditor_notes,
+            "risk_reasons": risk.get("reasons", []),
+        }
+
+    auditor_summary = _summarize_auditor_checks(raw_auditor_notes)
+    contributors = overall.get("contributors") or {}
+    side_scores = overall.get("side_scores") or {}
+
     snapshot = {
-        "overall": _jsonable(overall),
+        "overall": _jsonable(
+            {
+                "decision": overall.get("decision"),
+                "confidence": overall.get("confidence"),
+                "method": overall.get("method"),
+                "side_scores": side_scores,
+                "contributors": contributors,
+                "auditor_notes": raw_auditor_notes,
+            }
+        ),
+        "contributors": _jsonable(contributors),
         "agents": _jsonable(results),
         "risk": _jsonable(risk),
         "market": {
@@ -206,14 +261,8 @@ async def _persist_alert(
             "options_snapshot": _jsonable(market.get("options_snapshot")),
             "latest_bar": _last_bar_snapshot(bars),
         },
+        "auditor_notes": {"checks": auditor_summary},
     }
-
-    auditor_notes = overall.get("auditor_notes") or {}
-    if overall.get("method") == "auditor_override":
-        auditor_notes = {
-            **auditor_notes,
-            "risk_reasons": risk.get("reasons", []),
-        }
 
     rth_ticket = _extract_rth_ticket(overall, results)
 
@@ -225,12 +274,53 @@ async def _persist_alert(
         risk_pass=bool(risk.get("pass", True)),
         method=overall.get("method", "weighted"),
         portfolio_snapshot=snapshot,
-        auditor_notes=_jsonable(auditor_notes),
+        auditor_notes=_jsonable({"checks": auditor_summary}),
         rth_ticket=_jsonable(rth_ticket),
     )
 
     session.add(alert)
     await session.flush()
+
+
+def _summarize_auditor_checks(notes: Dict[str, Any]) -> List[Dict[str, Any]]:
+    failure_modes = set(notes.get("failure_modes", []))
+    implied = notes.get("implied_volatility")
+    realized = notes.get("realized_vol_5d")
+    ratio = notes.get("implied_realized_diff_ratio")
+
+    if isinstance(implied, (int, float)) and isinstance(realized, (int, float)):
+        if isinstance(ratio, (int, float)):
+            vol_detail = f"implied {implied:.2f} vs realized {realized:.2f} (ratio={ratio:.2f})"
+        else:
+            vol_detail = f"implied {implied:.2f} vs realized {realized:.2f}"
+    else:
+        vol_detail = str(notes.get("implied_move_check", "insufficient_data"))
+
+    data_issue = next(
+        (mode for mode in failure_modes if mode in {"missing_bars", "non_monotonic_prices", "nan_in_market_data"}),
+        None,
+    )
+    agent_issue = "nan_in_agent_output" if "nan_in_agent_output" in failure_modes else None
+
+    checks: List[Dict[str, Any]] = [
+        {
+            "name": "volatility_alignment",
+            "status": "fail" if "implied_move_outlier" in failure_modes else "pass",
+            "detail": vol_detail,
+        },
+        {
+            "name": "market_data_integrity",
+            "status": "fail" if data_issue else "pass",
+            "detail": data_issue or "ok",
+        },
+        {
+            "name": "agent_output_sanity",
+            "status": "fail" if agent_issue else "pass",
+            "detail": agent_issue or "ok",
+        },
+    ]
+
+    return checks[:3]
 
 
 def _last_timestamp(bars: pd.DataFrame | None) -> datetime:

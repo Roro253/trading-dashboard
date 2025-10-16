@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { fetchLatestEnsemble } from '../lib/api';
-import type { EnsembleResponse } from '../lib/types';
+import { fetchLatestEnsemble, fetchOptionsSummary, fetchPcr, fetchPrice } from '../lib/api';
+import type { EnsembleResponse, OptionsSummary, PcrResponse, PriceResponse } from '../lib/types';
 import { Panel } from './Panel';
 import { AlertDraftPanel } from './AlertDraftPanel';
 import { AuditTrail } from './AuditTrail';
 import { HistoryTable } from './HistoryTable';
 import { PerformancePanel } from './PerformancePanel';
+import { PricePill } from './PricePill';
+import { OptionsCard } from './OptionsCard';
+import { SentimentChip } from './SentimentChip';
 import styles from '../styles/Dashboard.module.css';
 
 const DEFAULT_SYMBOL = 'QQQ';
@@ -39,6 +42,122 @@ export function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [insightMode, setInsightMode] = useState<InsightMode>('insights');
+
+  const [price, setPrice] = useState<PriceResponse | null>(null);
+  const [priceLoading, setPriceLoading] = useState(false);
+  const [priceError, setPriceError] = useState<string | null>(null);
+
+  const [optionsSummary, setOptionsSummary] = useState<OptionsSummary | null>(null);
+  const [optionsLoading, setOptionsLoading] = useState(false);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
+
+  const [pcr, setPcr] = useState<PcrResponse | null>(null);
+  const [pcrLoading, setPcrLoading] = useState(false);
+  const [pcrError, setPcrError] = useState<string | null>(null);
+
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const loadPrice = useCallback(async () => {
+    setPriceLoading(true);
+    try {
+      const data = await fetchPrice(selectedSymbol);
+      if (!mountedRef.current) {
+        return;
+      }
+      setPrice(data);
+      setPriceError(null);
+    } catch (err) {
+      if (!mountedRef.current) {
+        return;
+      }
+      setPriceError('Price feed temporarily unavailable');
+    } finally {
+      if (mountedRef.current) {
+        setPriceLoading(false);
+      }
+    }
+  }, [selectedSymbol]);
+
+  const loadOptions = useCallback(async () => {
+    setOptionsLoading(true);
+    try {
+      const summary = await fetchOptionsSummary(selectedSymbol);
+      if (!mountedRef.current) {
+        return;
+      }
+      setOptionsSummary(summary);
+      setOptionsError(null);
+    } catch (err) {
+      if (!mountedRef.current) {
+        return;
+      }
+      setOptionsError('Options feed paused');
+    } finally {
+      if (mountedRef.current) {
+        setOptionsLoading(false);
+      }
+    }
+  }, [selectedSymbol]);
+
+  const loadPcr = useCallback(async () => {
+    setPcrLoading(true);
+    try {
+      const data = await fetchPcr();
+      if (!mountedRef.current) {
+        return;
+      }
+      setPcr(data);
+      setPcrError(null);
+    } catch (err) {
+      if (!mountedRef.current) {
+        return;
+      }
+      setPcrError('PCR feed unavailable');
+    } finally {
+      if (mountedRef.current) {
+        setPcrLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    setPrice(null);
+    setPriceError(null);
+    void loadPrice();
+    const interval = window.setInterval(() => {
+      void loadPrice();
+    }, 15_000);
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [loadPrice]);
+
+  useEffect(() => {
+    void loadOptions();
+    const interval = window.setInterval(() => {
+      void loadOptions();
+    }, 60_000);
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [loadOptions]);
+
+  useEffect(() => {
+    void loadPcr();
+    const interval = window.setInterval(() => {
+      void loadPcr();
+    }, 5 * 60_000);
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [loadPcr]);
 
   useEffect(() => {
     let mounted = true;
@@ -89,8 +208,6 @@ export function Dashboard() {
   );
 
   const portfolioSnapshot = (latest?.portfolio_snapshot as Record<string, unknown>) ?? null;
-  const marketSnapshot = (portfolioSnapshot?.market as Record<string, unknown>) ?? null;
-  const optionsSnapshot = (marketSnapshot?.options_snapshot as Record<string, unknown>) ?? null;
   const auditorChecks =
     ((portfolioSnapshot?.auditor_notes as { checks?: { name: string; status: string; detail: string }[] })?.checks ??
       []) as { name: string; status: string; detail: string }[];
@@ -116,34 +233,50 @@ export function Dashboard() {
   }, [portfolioSnapshot]);
 
   const tapeItems = useMemo(() => {
-    const ivRank = Number(optionsSnapshot?.implied_vol_rank ?? optionsSnapshot?.implied_volatility ?? NaN);
-    const skew = Number(optionsSnapshot?.skew_proxy ?? NaN);
-    const depth = optionsSnapshot?.depth_ok ? 'Depth OK' : 'Depth thin';
-    const volumeDelta = Number(optionsSnapshot?.volume_delta ?? NaN);
+    const items: { label: string; value: string; tone: 'up' | 'down' | 'steady' }[] = [];
 
-    return [
-      {
-        label: `${selectedSymbol} IV`,
-        value: Number.isFinite(ivRank) ? `${(ivRank * 100).toFixed(1)}%` : 'scanning...',
-        tone: ivRank > 0.6 ? 'up' : ivRank > 0.3 ? 'steady' : 'down',
-      },
-      {
-        label: 'Skew Pulse',
-        value: Number.isFinite(skew) ? `${skew.toFixed(2)}` : 'neutral',
-        tone: Math.abs(skew) > 0.5 ? 'up' : 'steady',
-      },
-      {
-        label: 'Liquidity',
-        value: depth,
-        tone: optionsSnapshot?.depth_ok ? 'up' : 'down',
-      },
-      {
-        label: 'Volume Δ',
-        value: Number.isFinite(volumeDelta) ? `${volumeDelta > 0 ? '+' : ''}${volumeDelta.toFixed(0)}` : 'loading',
-        tone: volumeDelta >= 0 ? 'up' : 'down',
-      },
-    ];
-  }, [optionsSnapshot, selectedSymbol]);
+    if (price) {
+      const pct = price.changePct * 100;
+      const tone = pct > 0 ? 'up' : pct < 0 ? 'down' : 'steady';
+      items.push({
+        label: `${selectedSymbol} Last`,
+        value: Number.isFinite(price.last) ? `$${price.last.toFixed(2)}` : '—',
+        tone,
+      });
+      items.push({
+        label: 'Δ%',
+        value: Number.isFinite(pct) ? `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` : '—',
+        tone,
+      });
+    } else {
+      items.push({ label: `${selectedSymbol} Last`, value: 'loading…', tone: 'steady' });
+      items.push({ label: 'Δ%', value: '—', tone: 'steady' });
+    }
+
+    const iv = optionsSummary?.iv30 ?? null;
+    const ivChange = optionsSummary?.ivChangePctDoD ?? null;
+    items.push({
+      label: 'IV30',
+      value: iv != null ? `${iv.toFixed(1)}%` : 'scanning…',
+      tone: ivChange != null && ivChange <= -5 ? 'down' : ivChange != null && ivChange >= 5 ? 'up' : 'steady',
+    });
+
+    const skew = optionsSummary?.skew25d ?? null;
+    items.push({
+      label: 'Skew 25Δ',
+      value: skew != null ? `${skew.toFixed(2)}` : 'neutral',
+      tone: skew != null && Math.abs(skew) >= 3 ? (skew > 0 ? 'up' : 'down') : 'steady',
+    });
+
+    const pcrToday = Number.isFinite(pcr?.today ?? NaN) ? pcr!.today : null;
+    items.push({
+      label: 'PCR Equity',
+      value: pcrToday != null ? pcrToday.toFixed(2) : '—',
+      tone: pcr?.isExtremeHigh ? 'up' : pcr?.isExtremeLow ? 'down' : 'steady',
+    });
+
+    return items;
+  }, [optionsSummary, pcr, price, selectedSymbol]);
 
   const renderInsightSection = () => {
     if (insightMode === 'playbook') {
@@ -272,6 +405,16 @@ export function Dashboard() {
           </div>
 
           <div className={styles.heroStats}>
+            <div className={styles.marketStack}>
+              <PricePill
+                symbol={selectedSymbol}
+                price={price}
+                loading={priceLoading}
+                error={priceError}
+                onRetry={loadPrice}
+              />
+              <SentimentChip data={pcr} loading={pcrLoading} error={pcrError} onRetry={loadPcr} />
+            </div>
             <div className={styles.confidenceShell}>
               <div className={styles.confidenceRing} style={ringStyles}>
                 <div className={styles.confidenceValue}>{confidencePct}%</div>
@@ -341,17 +484,13 @@ export function Dashboard() {
             </footer>
           </article>
 
-          <article className={styles.insightCard}>
-            <span className={styles.cardEyebrow}>Market Pulse</span>
-            <h3>Options desk says {optionsSnapshot?.depth_ok ? 'depth stable' : 'watch liquidity'}</h3>
-            <p>
-              IV {optionsSnapshot?.implied_volatility ? (Number(optionsSnapshot.implied_volatility) * 100).toFixed(1) : '—'}
-              % · Skew {optionsSnapshot?.skew_proxy ? Number(optionsSnapshot.skew_proxy).toFixed(2) : '0.00'}
-            </p>
-            <footer>
-              <span className={styles.agentTag}>Open interest Δ {optionsSnapshot?.open_interest_delta ?? '—'}</span>
-            </footer>
-          </article>
+          <OptionsCard
+            symbol={selectedSymbol}
+            summary={optionsSummary}
+            loading={optionsLoading}
+            error={optionsError}
+            onRetry={loadOptions}
+          />
 
           <article className={styles.insightCard}>
             <span className={styles.cardEyebrow}>Learning Spark</span>

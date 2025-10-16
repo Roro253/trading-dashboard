@@ -1,4 +1,11 @@
-import { EnsembleResponse, HistoryResponse, PerformanceResponse } from './types';
+import {
+  EnsembleResponse,
+  HistoryResponse,
+  OptionsSummary,
+  PerformanceResponse,
+  PcrResponse,
+  PriceResponse,
+} from './types';
 
 const DEFAULT_API_BASE = 'http://localhost:8000';
 const envApiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
@@ -21,6 +28,26 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     const message = await response.text();
     const error = new Error(`API request failed (${response.status}): ${message}`);
+    (error as Error & { status?: number }).status = response.status;
+    throw error;
+  }
+
+  return response.json() as Promise<T>;
+}
+
+async function nextApiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(path, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(init?.headers || {}),
+    },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    const error = new Error(`Next API request failed (${response.status}): ${message}`);
     (error as Error & { status?: number }).status = response.status;
     throw error;
   }
@@ -56,4 +83,16 @@ export async function fetchPerformance(agentKey?: string, window?: string): Prom
 
 export async function fetchLatestEnsemble(symbol: string): Promise<EnsembleResponse> {
   return apiFetch<EnsembleResponse>(`/api/ensemble/${encodeURIComponent(symbol)}`);
+}
+
+export async function fetchPrice(symbol: string): Promise<PriceResponse> {
+  return nextApiFetch<PriceResponse>(`/api/price/${encodeURIComponent(symbol)}`);
+}
+
+export async function fetchOptionsSummary(symbol: string): Promise<OptionsSummary> {
+  return nextApiFetch<OptionsSummary>(`/api/options/chain/${encodeURIComponent(symbol)}`);
+}
+
+export async function fetchPcr(): Promise<PcrResponse> {
+  return nextApiFetch<PcrResponse>('/api/sentiment/pcr');
 }

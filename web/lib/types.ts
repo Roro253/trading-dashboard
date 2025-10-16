@@ -46,3 +46,41 @@ export interface EnsembleResponse {
   risk_pass: boolean;
   rth_ticket?: Record<string, unknown> | null;
 }
+
+export type MarketStatus = 'open' | 'closed' | 'pre' | 'post' | 'unknown';
+
+export interface PriceResponse {
+  symbol: string;
+  last: number;
+  prevClose: number;
+  changePct: number;
+  marketStatus: MarketStatus;
+  asOf: string;
+  source: 'polygon';
+  stale: boolean;
+}
+
+export interface OptionsSummary {
+  symbol: string;
+  iv30: number | null;
+  ivChangePctDoD: number | null;
+  skew25d: number | null;
+  topCallOI: { strike: number; change: number } | null;
+  topPutOI: { strike: number; change: number } | null;
+  asOf: string;
+  takeaways: string[];
+  evidence: { label: string; value: string }[];
+  source: 'polygon';
+}
+
+export interface PcrResponse {
+  today: number;
+  ma5: number;
+  ma10: number;
+  z10: number;
+  isExtremeHigh: boolean;
+  isExtremeLow: boolean;
+  takeaway: string;
+  asOf: string;
+  source: 'cboe';
+}

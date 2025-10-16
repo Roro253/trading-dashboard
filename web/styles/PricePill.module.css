@@ -1,0 +1,164 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.4);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+}
+
+.flashUp {
+  box-shadow:
+    0 0 0 1px rgba(34, 197, 94, 0.5),
+    0 14px 32px rgba(16, 185, 129, 0.4),
+    inset 0 0 0 1px rgba(34, 197, 94, 0.4);
+  border-color: rgba(74, 222, 128, 0.75);
+}
+
+.flashDown {
+  box-shadow:
+    0 0 0 1px rgba(248, 113, 113, 0.5),
+    0 14px 32px rgba(248, 113, 113, 0.25),
+    inset 0 0 0 1px rgba(239, 68, 68, 0.4);
+  border-color: rgba(248, 113, 113, 0.65);
+}
+
+.stale {
+  opacity: 0.92;
+  border-style: dashed;
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.symbol {
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.marketStatus {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+}
+
+.statusOpen {
+  background: rgba(34, 197, 94, 0.2);
+  color: #bbf7d0;
+}
+
+.statusClosed {
+  background: rgba(148, 163, 184, 0.16);
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.statusPre {
+  background: rgba(56, 189, 248, 0.2);
+  color: #bae6fd;
+}
+
+.statusPost {
+  background: rgba(250, 204, 21, 0.25);
+  color: #fde68a;
+}
+
+.statusUnknown {
+  background: rgba(148, 163, 184, 0.12);
+  color: rgba(148, 163, 184, 0.6);
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.last {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.change {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.changeUp {
+  color: #86efac;
+}
+
+.changeDown {
+  color: #fca5a5;
+}
+
+.changeFlat {
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.metaRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.asOf {
+  font-variant-numeric: tabular-nums;
+}
+
+.degraded {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(248, 113, 113, 0.16);
+  color: rgba(248, 113, 113, 0.85);
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.retryButton {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.retryButton:hover {
+  transform: rotate(20deg);
+}
+
+.loading,
+.error {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.loading {
+  color: rgba(125, 211, 252, 0.75);
+}
+
+.error {
+  color: rgba(248, 113, 113, 0.85);
+}

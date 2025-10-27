@@ -171,11 +171,34 @@ async function fetchPrevClose(symbol: string): Promise<PolygonPriceSnapshot> {
   const start = Date.now();
   const payload = await polygonRequest(`/v2/aggs/ticker/${symbol}/prev`, { adjusted: 'true' });
 
-  const closeResult = payload?.results?.[0] as Record<string, unknown> | undefined;
+  const results = Array.isArray(payload?.results) ? payload.results : [];
+  const closeResult = results.length > 0 ? results[0] as Record<string, unknown> : undefined;
   if (closeResult) {
     const prevClose = Number((closeResult.c as number | undefined) ?? (closeResult.close as number | undefined) ?? 0);
     const asOfValue = closeResult.t as number | undefined;
-    const asOf = typeof asOfValue === 'number' ? new Date(asOfValue).toISOString() : new Date().toISOString();
+    
+    // Safe date handling for previous close - handle both milliseconds and nanoseconds
+    let asOf: string;
+    try {
+      if (typeof asOfValue === 'number' && asOfValue > 0 && Number.isFinite(asOfValue)) {
+        // If timestamp is too large, it's likely in nanoseconds, convert to milliseconds
+        let timestamp = asOfValue;
+        if (timestamp > 9999999999999) { // If more than 13 digits, it's nanoseconds
+          timestamp = Math.floor(timestamp / 1000000); // Convert nanoseconds to milliseconds
+        }
+        
+        const date = new Date(timestamp);
+        if (Number.isNaN(date.getTime())) {
+          asOf = new Date().toISOString();
+        } else {
+          asOf = date.toISOString();
+        }
+      } else {
+        asOf = new Date().toISOString();
+      }
+    } catch (error) {
+      asOf = new Date().toISOString();
+    }
     return {
       last: prevClose,
       prevClose,
@@ -211,7 +234,29 @@ async function fetchSnapshot(symbol: string): Promise<PolygonPriceSnapshot> {
     Number(ticker.lastTrade?.p ?? ticker.lastQuote?.p ?? ticker.day?.close ?? ticker.prevDay?.close ?? NaN) || 0;
   const prevClose = Number(ticker.prevDay?.close ?? ticker.day?.close ?? lastPrice) || 0;
   const tradeTs = ticker.lastTrade?.t as number | undefined;
-  const asOf = typeof tradeTs === 'number' ? new Date(tradeTs).toISOString() : new Date().toISOString();
+  
+  // Safe date handling with fallback - handle both milliseconds and nanoseconds
+  let asOf: string;
+  try {
+    if (typeof tradeTs === 'number' && tradeTs > 0 && Number.isFinite(tradeTs)) {
+      // If timestamp is too large, it's likely in nanoseconds, convert to milliseconds
+      let timestamp = tradeTs;
+      if (timestamp > 9999999999999) { // If more than 13 digits, it's nanoseconds
+        timestamp = Math.floor(timestamp / 1000000); // Convert nanoseconds to milliseconds
+      }
+      
+      const date = new Date(timestamp);
+      if (Number.isNaN(date.getTime())) {
+        asOf = new Date().toISOString();
+      } else {
+        asOf = date.toISOString();
+      }
+    } else {
+      asOf = new Date().toISOString();
+    }
+  } catch (error) {
+    asOf = new Date().toISOString();
+  }
   const changePct = prevClose ? (lastPrice - prevClose) / prevClose : 0;
 
   return {

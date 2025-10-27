@@ -1,9 +1,5 @@
-import { Dashboard } from '../components/Dashboard';
+import ProfessionalPortfolio from '../components/ProfessionalPortfolio';
 
 export default function HomePage() {
-  return (
-    <main>
-      <Dashboard />
-    </main>
-  );
+  return <ProfessionalPortfolio />;
 }

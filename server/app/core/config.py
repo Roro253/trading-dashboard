@@ -25,13 +25,14 @@ class Settings(BaseSettings):
     postgres_user: str = Field(default="postgres", alias="POSTGRES_USER")
     postgres_password: str = Field(default="postgres", alias="POSTGRES_PASSWORD")
 
-    redis_url: AnyUrl = Field(alias="REDIS_URL")
+    redis_url: str = Field(default="redis://localhost:6379", alias="REDIS_URL")
 
     api_cors_origins: List[AnyHttpUrl] = Field(default_factory=list, alias="API_CORS_ORIGINS")
     polygon_api_key: str = Field(default="", alias="POLYGON_API_KEY")
+    openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
     event_blackout_iso: List[str] = Field(default_factory=list, alias="EVENT_BLACKOUT_ISO")
 
-    next_public_api_base_url: AnyHttpUrl = Field(alias="NEXT_PUBLIC_API_BASE_URL")
+    next_public_api_base_url: str = Field(default="http://localhost:8000", alias="NEXT_PUBLIC_API_BASE_URL")
 
     @field_validator("api_cors_origins", mode="before")
     @classmethod

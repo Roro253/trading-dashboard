@@ -1,0 +1,646 @@
+/* Agent Architecture Styles */
+.architectureContainer {
+  min-height: 100vh;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255, 0, 255, 0.1) 0%, transparent 50%),
+    linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 100%);
+  color: #ffffff;
+  position: relative;
+  overflow-x: auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem 3rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.titleSection h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #00ffff, #ff00ff, #ffff00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: titleGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlow {
+  0% { filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.5)); }
+  100% { filter: drop-shadow(0 0 20px rgba(255, 0, 255, 0.8)); }
+}
+
+.titleSection p {
+  margin: 0.5rem 0 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.1rem;
+}
+
+.educationalNote {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(0, 255, 255, 0.1);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  max-width: 600px;
+}
+
+/* Current Signal Panel */
+.currentSignalPanel {
+  padding: 2rem 3rem;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.signalCard {
+  background: linear-gradient(135deg, rgba(30, 30, 50, 0.8), rgba(50, 50, 80, 0.8));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 2rem;
+  backdrop-filter: blur(10px);
+}
+
+.signalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.signalHeader h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #ffffff;
+}
+
+.signalBadge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.signalBadge.buy {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid #22c55e;
+}
+
+.signalBadge.sell {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid #ef4444;
+}
+
+.signalBadge.hold {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+  border: 1px solid #fbbf24;
+}
+
+.signalDetails {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.signalMetric {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.signalMetric span:first-child {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.signalMetric span:last-child {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.signalExplanation {
+  padding: 1rem;
+  background: rgba(0, 255, 255, 0.1);
+  border-left: 3px solid #00ffff;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.symbolSelector {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 255, 255, 0.5);
+  color: #ffffff;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.symbolSelector:hover {
+  border-color: rgba(0, 255, 255, 0.8);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+.refreshBtn {
+  background: linear-gradient(135deg, #00ff88, #00ccff);
+  border: none;
+  color: #000000;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+}
+
+.refreshBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 255, 136, 0.4);
+}
+
+/* Architecture Flow */
+.architectureFlow {
+  padding: 2rem 3rem;
+  position: relative;
+}
+
+.flowContainer {
+  position: relative;
+  width: 100%;
+  height: 600px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+}
+
+.backgroundGrid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: gridPulse 4s ease-in-out infinite;
+}
+
+@keyframes gridPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+.connectionsSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.animatedPath {
+  animation: pathPulse 2s ease-in-out;
+}
+
+@keyframes pathPulse {
+  0% { stroke-width: 2; opacity: 0.8; }
+  50% { stroke-width: 6; opacity: 1; }
+  100% { stroke-width: 2; opacity: 0.8; }
+}
+
+/* Agent Nodes */
+.agentNode {
+  position: absolute;
+  width: 240px;
+  min-height: 80px;
+  background: rgba(20, 20, 40, 0.9);
+  border: 2px solid rgba(0, 255, 255, 0.5);
+  border-radius: 12px;
+  padding: 1rem;
+  backdrop-filter: blur(15px);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+}
+
+.agentNode:hover {
+  transform: translateY(-5px);
+  border-color: rgba(0, 255, 255, 0.8);
+  box-shadow: 0 15px 40px rgba(0, 255, 255, 0.2);
+}
+
+.agentNode.selected {
+  border-color: rgba(255, 0, 255, 0.8);
+  box-shadow: 0 0 30px rgba(255, 0, 255, 0.4);
+  transform: scale(1.05);
+}
+
+.agentNode.input {
+  border-color: rgba(0, 255, 136, 0.5);
+}
+
+.agentNode.input:hover {
+  border-color: rgba(0, 255, 136, 0.8);
+  box-shadow: 0 15px 40px rgba(0, 255, 136, 0.2);
+}
+
+.agentNode.processor {
+  border-color: rgba(255, 196, 0, 0.5);
+}
+
+.agentNode.processor:hover {
+  border-color: rgba(255, 196, 0, 0.8);
+  box-shadow: 0 15px 40px rgba(255, 196, 0, 0.2);
+}
+
+.agentNode.decision {
+  border-color: rgba(255, 0, 255, 0.5);
+  background: rgba(40, 20, 40, 0.9);
+}
+
+.agentNode.decision:hover {
+  border-color: rgba(255, 0, 255, 0.8);
+  box-shadow: 0 15px 40px rgba(255, 0, 255, 0.2);
+}
+
+.nodeHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.statusIndicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.nodeName {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #ffffff;
+}
+
+.nodeMetrics {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.confidenceBar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.confidenceFill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff4444, #ffaa00, #00ff88);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.confidenceValue {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #00ffff;
+}
+
+.decision {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.decision.buy {
+  background: rgba(0, 255, 136, 0.2);
+  color: #00ff88;
+  border: 1px solid rgba(0, 255, 136, 0.5);
+}
+
+.decision.sell {
+  background: rgba(255, 68, 68, 0.2);
+  color: #ff4444;
+  border: 1px solid rgba(255, 68, 68, 0.5);
+}
+
+.decision.hold {
+  background: rgba(255, 196, 0, 0.2);
+  color: #ffc400;
+  border: 1px solid rgba(255, 196, 0, 0.5);
+}
+
+.nodeData {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.positive { color: #00ff88; }
+.negative { color: #ff4444; }
+
+.pulseRing {
+  position: absolute;
+  inset: -2px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  background: linear-gradient(45deg, transparent, rgba(0, 255, 255, 0.3), transparent);
+  background-size: 200% 200%;
+  animation: ringRotate 3s linear infinite;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.agentNode:hover .pulseRing {
+  opacity: 1;
+}
+
+@keyframes ringRotate {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+/* Decision Outputs */
+.outputs {
+  position: absolute;
+  right: 50px;
+  bottom: 50px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.outputCard {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  backdrop-filter: blur(15px);
+  border: 2px solid;
+  transition: all 0.3s ease;
+  opacity: 0.6;
+}
+
+.outputCard.active {
+  opacity: 1;
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+}
+
+.outputContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.outputContent small {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  font-weight: 400;
+}
+
+.outputCard.buy {
+  background: rgba(0, 255, 136, 0.1);
+  border-color: rgba(0, 255, 136, 0.5);
+  color: #00ff88;
+}
+
+.outputCard.sell {
+  background: rgba(255, 68, 68, 0.1);
+  border-color: rgba(255, 68, 68, 0.5);
+  color: #ff4444;
+}
+
+.outputCard.hold {
+  background: rgba(255, 196, 0, 0.1);
+  border-color: rgba(255, 196, 0, 0.5);
+  color: #ffc400;
+}
+
+.outputIcon {
+  font-size: 1.5rem;
+}
+
+/* Agent Details Panel */
+.agentDetails {
+  position: fixed;
+  right: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 350px;
+  max-height: 80vh;
+  background: rgba(20, 20, 40, 0.95);
+  border: 1px solid rgba(0, 255, 255, 0.5);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  z-index: 200;
+  overflow: hidden;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+.detailsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.detailsHeader h3 {
+  margin: 0;
+  color: #00ffff;
+  font-size: 1.2rem;
+}
+
+.detailsHeader button {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.detailsHeader button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.detailsContent {
+  padding: 1.5rem;
+  max-height: calc(80vh - 100px);
+  overflow-y: auto;
+}
+
+.detailSection {
+  margin-bottom: 2rem;
+}
+
+.detailSection h4 {
+  margin: 0 0 1rem 0;
+  color: #ffffff;
+  font-size: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 0.5rem;
+}
+
+.detailSection p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+  font-size: 0.9rem;
+}
+
+.metricsGrid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border-left: 3px solid #00ffff;
+}
+
+.metric span:first-child {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+}
+
+.metric span:last-child {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* System Stats */
+.systemStats {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  padding: 2rem 3rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stat span:first-child {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stat span:last-child {
+  color: #00ffff;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .agentDetails {
+    position: static;
+    transform: none;
+    width: 100%;
+    max-height: none;
+    margin-top: 2rem;
+    margin-left: 2rem;
+    margin-right: 2rem;
+  }
+  
+  .flowContainer {
+    height: 500px;
+  }
+  
+  .header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .architectureContainer {
+    padding: 0;
+  }
+  
+  .header {
+    padding: 1rem;
+  }
+  
+  .titleSection h1 {
+    font-size: 1.8rem;
+  }
+  
+  .architectureFlow {
+    padding: 1rem;
+  }
+  
+  .systemStats {
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1rem;
+  }
+}

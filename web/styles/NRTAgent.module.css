@@ -1,0 +1,545 @@
+/* NRT Agent Styles */
+.nrtContainer {
+  padding: 2rem;
+  background: linear-gradient(135deg, rgba(0, 10, 20, 0.9), rgba(10, 0, 30, 0.9));
+  border-radius: 20px;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+}
+
+.loadingSpinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0, 255, 255, 0.2);
+  border-top: 3px solid #00ffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.titleSection h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, #00ffff, #ff00ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.titleSection p {
+  margin: 0.25rem 0 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+}
+
+.statusBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid;
+  border-radius: 25px;
+  backdrop-filter: blur(10px);
+  font-weight: 600;
+}
+
+.statusDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.2); }
+}
+
+.confidence {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  color: #00ffff;
+}
+
+/* Main Grid */
+.mainGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 2rem;
+}
+
+/* Regime Panel */
+.regimePanel {
+  background: rgba(0, 20, 40, 0.4);
+  padding: 1.5rem;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.regimePanel h3 {
+  margin: 0 0 1rem 0;
+  color: #00ffff;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.regimeDescription {
+  margin: 0 0 1.5rem 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.regimeChart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.regimeBar {
+  position: relative;
+  height: 50px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.regimeBar:hover {
+  transform: translateX(5px);
+  border-color: var(--regime-color);
+}
+
+.regimeBar.dominant {
+  border-color: var(--regime-color);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+.regimeBarFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--regime-width);
+  background: linear-gradient(90deg, var(--regime-color), transparent);
+  opacity: 0.6;
+  animation: fillRegime 1s ease-out var(--animation-delay);
+}
+
+@keyframes fillRegime {
+  0% { width: 0%; }
+  100% { width: var(--regime-width); }
+}
+
+.regimeLabel {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: calc(100% - 2rem);
+  z-index: 2;
+}
+
+.regimeName {
+  font-weight: 600;
+  color: #ffffff;
+  font-size: 0.9rem;
+}
+
+.regimeProb {
+  font-weight: 700;
+  color: var(--regime-color);
+  font-size: 0.9rem;
+}
+
+/* Factor Panel */
+.factorPanel {
+  background: rgba(20, 0, 40, 0.4);
+  padding: 1.5rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 0, 255, 0.2);
+}
+
+.factorPanel h3 {
+  margin: 0 0 1.5rem 0;
+  color: #ff00ff;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.factorGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.factorCard {
+  position: relative;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 1rem;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.factorCard:hover {
+  transform: translateY(-2px);
+  border-color: var(--factor-color);
+}
+
+.factorCard.positive {
+  border-left: 4px solid #00ff88;
+}
+
+.factorCard.negative {
+  border-left: 4px solid #ff4444;
+}
+
+.factorCard.neutral {
+  border-left: 4px solid #666666;
+}
+
+.factorHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.factorName {
+  font-weight: 600;
+  color: #ffffff;
+  font-size: 0.9rem;
+}
+
+.factorSymbol {
+  font-size: 0.8rem;
+  color: var(--factor-color);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+}
+
+.factorMetrics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tiltBar {
+  position: relative;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.tiltFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--factor-color), transparent);
+  border-radius: 4px;
+  transition: width 0.8s ease;
+}
+
+.tiltValue {
+  position: absolute;
+  right: 0.5rem;
+  top: -1.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--factor-color);
+}
+
+.weightDisplay {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.factorPulse {
+  position: absolute;
+  inset: -2px;
+  border-radius: 12px;
+  background: linear-gradient(45deg, transparent, var(--factor-color), transparent);
+  opacity: 0.3;
+  animation: factorPulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes factorPulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.02); }
+}
+
+/* Decision Panel */
+.decisionPanel {
+  grid-column: 1 / -1;
+  background: rgba(40, 20, 0, 0.4);
+  padding: 1.5rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 196, 0, 0.2);
+}
+
+.decisionPanel h3 {
+  margin: 0 0 1.5rem 0;
+  color: #ffc400;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.decisionDisplay {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.decisionBadge {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  border-radius: 20px;
+  border: 3px solid;
+  font-weight: 700;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  animation: decisionGlow 2s ease-in-out infinite alternate;
+}
+
+.decisionBadge.buy {
+  background: rgba(0, 255, 136, 0.1);
+  border-color: #00ff88;
+  color: #00ff88;
+}
+
+.decisionBadge.sell {
+  background: rgba(255, 68, 68, 0.1);
+  border-color: #ff4444;
+  color: #ff4444;
+}
+
+.decisionBadge.hold {
+  background: rgba(255, 196, 0, 0.1);
+  border-color: #ffc400;
+  color: #ffc400;
+}
+
+@keyframes decisionGlow {
+  0% { box-shadow: 0 0 10px currentColor; }
+  100% { box-shadow: 0 0 30px currentColor; }
+}
+
+.decisionIcon {
+  font-size: 1.8rem;
+}
+
+.confidenceRing {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.confidenceSvg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.confidenceText {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.confidenceValue {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.confidenceLabel {
+  display: block;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.riskMetrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.metric span:first-child {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.metric span:last-child {
+  color: #ffffff;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+/* Data Flow Animation */
+.dataFlow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+.flowParticle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #00ffff;
+  border-radius: 50%;
+  opacity: 0;
+  box-shadow: 0 0 10px #00ffff;
+}
+
+.flowParticle.phase0 {
+  top: 10%;
+  left: 0%;
+  animation: flowRight 4s ease-in-out infinite;
+}
+
+.flowParticle.phase1 {
+  top: 50%;
+  right: 0%;
+  animation: flowLeft 4s ease-in-out infinite 1s;
+}
+
+.flowParticle.phase2 {
+  bottom: 10%;
+  left: 50%;
+  animation: flowUp 4s ease-in-out infinite 2s;
+}
+
+.flowParticle.phase3 {
+  top: 30%;
+  left: 20%;
+  animation: flowDiagonal 4s ease-in-out infinite 3s;
+}
+
+@keyframes flowRight {
+  0%, 100% { opacity: 0; transform: translateX(0); }
+  50% { opacity: 1; transform: translateX(300px); }
+}
+
+@keyframes flowLeft {
+  0%, 100% { opacity: 0; transform: translateX(0); }
+  50% { opacity: 1; transform: translateX(-300px); }
+}
+
+@keyframes flowUp {
+  0%, 100% { opacity: 0; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-200px); }
+}
+
+@keyframes flowDiagonal {
+  0%, 100% { opacity: 0; transform: translate(0, 0); }
+  50% { opacity: 1; transform: translate(200px, -150px); }
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .mainGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .decisionDisplay {
+    flex-direction: column;
+    text-align: center;
+    gap: 1.5rem;
+  }
+  
+  .riskMetrics {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .nrtContainer {
+    padding: 1rem;
+  }
+  
+  .header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+  
+  .factorGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .decisionBadge {
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+  }
+  
+  .confidenceRing {
+    width: 100px;
+    height: 100px;
+  }
+}

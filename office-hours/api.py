@@ -7,12 +7,15 @@ Run standalone:
     FRED_API_KEY=... uvicorn office-hours.api:app --port 8001
 
 Env:
-    FRED_API_KEY   required for live mode
+    FRED_API_KEY    required for live mode
+    OFFICE_HOURS_DB optional; path to SQLite history file
+                    (defaults to ./data/office_hours.db)
 """
 from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Callable
 
 import httpx
@@ -21,6 +24,10 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from adapters import BreadthClient, FredClient, YahooClient
 from pipeline import Pipeline, PipelineResult
 from scoring.decision import EventWindow
+from store import SqliteStore
+
+
+DEFAULT_DB_PATH = Path(__file__).parent / "data" / "office_hours.db"
 
 
 def build_default_pipeline() -> Pipeline:
@@ -39,7 +46,9 @@ def build_default_pipeline() -> Pipeline:
     fred = FredClient(api_key=api_key, client=fred_http)
     yahoo = YahooClient(client=yahoo_http)
     breadth = BreadthClient(yahoo=yahoo)
-    return Pipeline(fred=fred, yahoo=yahoo, breadth=breadth)
+    db_path = Path(os.environ.get("OFFICE_HOURS_DB", DEFAULT_DB_PATH))
+    store = SqliteStore(path=db_path)
+    return Pipeline(fred=fred, yahoo=yahoo, breadth=breadth, store=store)
 
 
 def _result_to_json(result: PipelineResult) -> dict[str, Any]:
@@ -47,9 +56,6 @@ def _result_to_json(result: PipelineResult) -> dict[str, Any]:
 
 
 def create_app(pipeline_factory: Callable[[], Pipeline] | None = None) -> FastAPI:
-    """Factory. Pass a ``pipeline_factory`` in tests to inject a mocked
-    Pipeline; production callers pass None to use the live FRED/Yahoo
-    factory."""
     app = FastAPI(title="Should I Be Trading? (office-hours)")
 
     factory: Callable[[], Pipeline] = pipeline_factory or build_default_pipeline
@@ -78,6 +84,7 @@ def create_app(pipeline_factory: Callable[[], Pipeline] | None = None) -> FastAP
             "service": "should-i-trade",
             "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "fred_configured": bool(os.environ.get("FRED_API_KEY")),
+            "db_path": str(os.environ.get("OFFICE_HOURS_DB", DEFAULT_DB_PATH)),
         }
 
     return app

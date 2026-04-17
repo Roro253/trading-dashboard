@@ -5,6 +5,7 @@ import {
   PerformanceResponse,
   PcrResponse,
   PriceResponse,
+  ShouldITradeResponse,
 } from './types';
 
 const DEFAULT_API_BASE = 'http://localhost:8000';
@@ -95,4 +96,15 @@ export async function fetchOptionsSummary(symbol: string): Promise<OptionsSummar
 
 export async function fetchPcr(): Promise<PcrResponse> {
   return nextApiFetch<PcrResponse>('/api/sentiment/pcr');
+}
+
+export async function fetchShouldITrade(
+  options: { within_24h_macro?: boolean; opex_week?: boolean } = {},
+): Promise<ShouldITradeResponse> {
+  const params = new URLSearchParams();
+  if (options.within_24h_macro) params.set('within_24h_macro', 'true');
+  if (options.opex_week) params.set('opex_week', 'true');
+  const query = params.toString();
+  const path = query ? `/should-i-trade?${query}` : '/should-i-trade';
+  return apiFetch<ShouldITradeResponse>(path);
 }

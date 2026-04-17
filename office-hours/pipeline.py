@@ -1,26 +1,22 @@
 """Assembly layer — adapters -> signals -> score -> decision.
 
-Pure orchestration. Adapters are injected so tests can mock them
-without network. The output is a rich result object suitable for JSON
-serialization by ``api.py``.
-
-This is deliberately a partial signal set for the first integration:
-Credit/Liquidity, Vol-Term-Structure, and Breadth buckets are wired;
-Trend/Dealer/Sentiment/Cross-asset/Calendar default to neutral (50)
-until their adapters land. The weighted composite still produces a
-meaningful number because neutral-fill is baked into
-``compute_bucket_scores``.
+Pure orchestration with injected dependencies. The final Market Quality
+Score is the percentile rank of today's composite within its own 3y
+trailing distribution (stored in ``store.py``); during cold start
+(<60 samples) we fall back to the raw composite so the endpoint still
+returns a sensible number.
 """
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
 from adapters import BreadthClient, FredClient, FredSeries, YahooClient, YahooSeries
+from breadth_compute import PERCENT_ABOVE_50D_METRIC
 from scoring import (
     Bucket,
     DecisionResult,
@@ -33,15 +29,15 @@ from scoring import (
 )
 from scoring.composite import SignalInput
 from scoring.decision import EventWindow, KillSwitchInputs
+from store import COLD_START_MIN_SAMPLES, CompositeHistoryStore
 
 
 BPS_PER_PCT = 100.0  # FRED OAS series are in percent; deltas -> bps
+PERCENTILE_WINDOW = 252 * 3  # 3 trading years
 
 
 @dataclass
 class SignalSnapshot:
-    """Per-signal values surfaced to the UI."""
-
     name: str
     bucket: str
     value: float | None
@@ -56,6 +52,7 @@ class PipelineResult:
     decision: str
     market_quality_score: float
     composite_raw: float
+    market_quality_is_percentile: bool
     bucket_scores: dict[str, float]
     triggered_kill_switches: list[str]
     reason_codes: list[str]
@@ -63,8 +60,7 @@ class PipelineResult:
     degraded_feeds: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
-        d = asdict(self)
-        return d
+        return asdict(self)
 
 
 def _latest_non_nan(series: pd.Series) -> float | None:
@@ -80,11 +76,6 @@ def _make_signal(
     invert: bool,
     inv_vol_weight: float,
 ) -> tuple[SignalInput | None, SignalSnapshot]:
-    """Normalize a raw series into (SignalInput for compositing, snapshot for UI).
-
-    Returns SignalInput=None when the last z-score is NaN — that
-    signal is dropped from the bucket average instead of fabricating a
-    50. The snapshot still surfaces the raw value for the UI."""
     z_series = rolling_zscore(series.dropna())
     z_latest = z_series.iloc[-1] if len(z_series) and not np.isnan(z_series.iloc[-1]) else None
     bucket_score = zscore_to_bucket_score(z_latest if z_latest is not None else float("nan"), invert=invert)
@@ -109,11 +100,10 @@ class Pipeline:
     fred: FredClient
     yahoo: YahooClient
     breadth: BreadthClient
+    store: CompositeHistoryStore | None = None
 
-    # Inverse-volatility weights per signal inside its bucket (unnormalized;
-    # compute_bucket_scores re-normalizes). These are placeholders until
-    # we compute actual signal volatility on historical data — same spec
-    # note applies as to the decision thresholds.
+    # Inverse-volatility weights per signal inside its bucket (placeholders
+    # until we compute actual signal volatility on historical data).
     credit_hy_oas_w: float = 1.0
     credit_hy_oas_5d_w: float = 1.0
     credit_net_liq_w: float = 0.6
@@ -121,6 +111,7 @@ class Pipeline:
     vol_vvix_w: float = 0.7
     breadth_nymo_w: float = 1.0
     breadth_nhl_w: float = 0.8
+    breadth_pct_50d_w: float = 1.0
 
     async def run(self, event_window: EventWindow | None = None) -> PipelineResult:
         degraded: list[str] = []
@@ -130,7 +121,7 @@ class Pipeline:
         async def safe(name: str, coro: Any) -> Any:
             try:
                 return await coro
-            except Exception:  # pragma: no cover - network/transport errors
+            except Exception:  # pragma: no cover - network/transport
                 degraded.append(name)
                 return pd.Series(dtype=float, name=name)
 
@@ -151,7 +142,7 @@ class Pipeline:
             if sig is not None:
                 credit_signals.append(sig)
 
-            hy_5d = hy_oas.diff(5) * BPS_PER_PCT  # OAS is in percent -> bps
+            hy_5d = hy_oas.diff(5) * BPS_PER_PCT
             sig5, snap5 = _make_signal(
                 name="hy_oas_5d_delta_bps",
                 bucket=Bucket.CREDIT_LIQUIDITY,
@@ -164,7 +155,7 @@ class Pipeline:
                 credit_signals.append(sig5)
 
         if len(net_liq):
-            net_liq_4w = net_liq.diff(20)  # trading-day 4w change
+            net_liq_4w = net_liq.diff(20)
             sig, snap = _make_signal(
                 name="net_liquidity_4w_delta",
                 bucket=Bucket.CREDIT_LIQUIDITY,
@@ -192,7 +183,7 @@ class Pipeline:
                 name="vix3m_vix_ratio",
                 bucket=Bucket.VOL_TERM_STRUCTURE,
                 series=ratio,
-                invert=False,  # higher ratio = contango = good
+                invert=False,
                 inv_vol_weight=self.vol_vix3m_vix_w,
             )
             snapshots.append(snap)
@@ -239,6 +230,22 @@ class Pipeline:
             snapshots.append(snap)
             if sig is not None:
                 breadth_signals.append(sig)
+
+        # Cached %>50d MA — computed out-of-band, read from store.
+        if self.store is not None:
+            pct_series = await self.store.metric_history(PERCENT_ABOVE_50D_METRIC)  # type: ignore[attr-defined]
+            if len(pct_series):
+                sig, snap = _make_signal(
+                    name="percent_above_50d",
+                    bucket=Bucket.BREADTH,
+                    series=pct_series,
+                    invert=False,
+                    inv_vol_weight=self.breadth_pct_50d_w,
+                )
+                snapshots.append(snap)
+                if sig is not None:
+                    breadth_signals.append(sig)
+
         if breadth_signals:
             signals_by_bucket[Bucket.BREADTH] = breadth_signals
 
@@ -246,12 +253,21 @@ class Pipeline:
         bucket_scores = compute_bucket_scores(signals_by_bucket)
         composite_raw = compose_market_quality_score(bucket_scores)
 
-        # The final Market Quality Score is the composite's percentile
-        # within its own trailing 3y distribution. On a cold start we
-        # don't have that history, so we return composite_raw directly.
-        # (A persistent store or on-disk cache of composite history
-        # lands with the caching task.)
+        # --- Percentile-map today's composite against stored history --
         market_quality_score = composite_raw
+        is_percentile = False
+        today = date.today()
+        if self.store is not None:
+            history = await self.store.get_composite_history(exclude=today)
+            if len(history) >= COLD_START_MIN_SAMPLES:
+                market_quality_score = percentile_rank(
+                    history,
+                    composite_raw,
+                    window=PERCENTILE_WINDOW,
+                )
+                is_percentile = True
+            # Record today's composite for future percentile maps.
+            await self.store.append_composite(today, composite_raw)
 
         # --- Kill-switches --------------------------------------------
         ks_inputs = KillSwitchInputs(
@@ -266,6 +282,7 @@ class Pipeline:
             decision=decision.decision.value,
             market_quality_score=round(market_quality_score, 2),
             composite_raw=round(composite_raw, 2),
+            market_quality_is_percentile=is_percentile,
             bucket_scores={b.value: round(v, 2) for b, v in bucket_scores.items()},
             triggered_kill_switches=[ks.value for ks in decision.triggered_kill_switches],
             reason_codes=decision.reason_codes,

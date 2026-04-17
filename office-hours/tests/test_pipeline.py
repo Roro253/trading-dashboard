@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, timedelta
 from typing import Iterable
 
 import numpy as np
@@ -11,6 +12,7 @@ import pytest
 from adapters import BreadthClient, FredClient, FredSeries, YahooClient, YahooSeries
 from pipeline import Pipeline
 from scoring.decision import EventWindow
+from store import COLD_START_MIN_SAMPLES, InMemoryStore
 
 
 # ----- helpers ----------------------------------------------------------
@@ -189,3 +191,68 @@ async def test_pipeline_response_is_json_serializable():
     payload = json.dumps(result.to_dict())
     assert '"decision"' in payload
     assert '"market_quality_score"' in payload
+    assert '"market_quality_is_percentile"' in payload
+
+
+@pytest.mark.asyncio
+async def test_pipeline_cold_start_without_store_returns_raw_composite():
+    pipe = _build_pipeline(calm=True)
+    result = await pipe.run()
+    # No store attached -> score == composite_raw and is_percentile False.
+    assert result.market_quality_is_percentile is False
+    assert result.market_quality_score == result.composite_raw
+
+
+@pytest.mark.asyncio
+async def test_pipeline_cold_start_with_store_falls_back_until_threshold():
+    pipe = _build_pipeline(calm=True)
+    pipe.store = InMemoryStore()
+    result = await pipe.run()
+    # Fewer than COLD_START_MIN_SAMPLES of prior history -> raw fallback.
+    assert result.market_quality_is_percentile is False
+
+
+@pytest.mark.asyncio
+async def test_pipeline_percentile_map_kicks_in_once_history_deep_enough():
+    pipe = _build_pipeline(calm=True)
+    store = InMemoryStore()
+    # Prefill enough prior samples clustered low so today's composite
+    # (~50) ranks near the top.
+    start = date(2026, 1, 1)
+    for i in range(COLD_START_MIN_SAMPLES + 5):
+        await store.append_composite(start + timedelta(days=i), 30.0)
+    pipe.store = store
+
+    result = await pipe.run()
+    assert result.market_quality_is_percentile is True
+    assert result.market_quality_score >= 80.0  # today >> all prior 30s
+
+
+@pytest.mark.asyncio
+async def test_pipeline_reads_cached_percent_above_50d_from_store():
+    pipe = _build_pipeline(calm=True)
+    store = InMemoryStore()
+    # Seed ~3 years of daily %>50d values so the rolling z-score is defined.
+    from breadth_compute import PERCENT_ABOVE_50D_METRIC
+
+    base = date(2020, 1, 1)
+    for i in range(800):
+        await store.put_metric(PERCENT_ABOVE_50D_METRIC, base + timedelta(days=i), 50.0 + i * 0.02)
+    pipe.store = store
+
+    result = await pipe.run()
+    # The cached metric should show up as a signal.
+    names = {s.name for s in result.signals}
+    assert "percent_above_50d" in names
+
+
+@pytest.mark.asyncio
+async def test_pipeline_records_composite_on_every_run():
+    pipe = _build_pipeline(calm=True)
+    store = InMemoryStore()
+    pipe.store = store
+    await pipe.run()
+    assert len(store.composite) == 1
+    await pipe.run()
+    # Same date -> still one row (insert-or-replace).
+    assert len(store.composite) == 1

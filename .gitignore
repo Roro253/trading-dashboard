@@ -33,3 +33,5 @@ npm-debug.log*
 # Project
 coverage/
 .tmp/
+office-hours/data/
+web/tsconfig.tsbuildinfo

@@ -1,0 +1,254 @@
+.wrapper {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(380px, 2fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 960px) {
+  .wrapper {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+.badge {
+  font-family: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 2.6rem;
+  letter-spacing: 0.12em;
+  padding: 0.8rem 1.8rem;
+  border-radius: 12px;
+  border: 2px solid currentColor;
+  line-height: 1;
+  text-shadow: 0 0 12px currentColor;
+}
+
+.badgeYES {
+  color: #00ff88;
+}
+
+.badgeCAUTION {
+  color: #ffc400;
+}
+
+.badgeNO {
+  color: #ff4444;
+}
+
+.scoreWrap {
+  position: relative;
+  width: 180px;
+  height: 180px;
+}
+
+.scoreSvg {
+  transform: rotate(-90deg);
+}
+
+.scoreTrack {
+  stroke: rgba(148, 163, 184, 0.18);
+  fill: none;
+}
+
+.scoreFill {
+  fill: none;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
+}
+
+.scoreLabel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+}
+
+.scoreValue {
+  font-size: 2.4rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+.scoreSub {
+  font-size: 0.72rem;
+  color: rgba(226, 232, 240, 0.6);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.reasonCodes {
+  font-size: 0.78rem;
+  color: rgba(226, 232, 240, 0.75);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  text-align: center;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.killBanner {
+  background: rgba(255, 68, 68, 0.12);
+  border: 1px solid rgba(255, 68, 68, 0.45);
+  border-radius: 10px;
+  padding: 0.7rem 0.9rem;
+  color: #ff6b6b;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.85rem;
+}
+
+.killBanner h4 {
+  margin: 0 0 0.3rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.killBanner ul {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.buckets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.bucketRow {
+  display: grid;
+  grid-template-columns: 160px 1fr 44px;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.bucketName {
+  font-size: 0.82rem;
+  color: rgba(226, 232, 240, 0.78);
+  text-transform: capitalize;
+}
+
+.bucketBarOuter {
+  position: relative;
+  background: rgba(148, 163, 184, 0.12);
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.bucketBarFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #ff4444 0%, #ffc400 50%, #00ff88 100%);
+  transition: width 0.5s ease;
+}
+
+.bucketValue {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.85rem;
+  color: rgba(226, 232, 240, 0.9);
+  text-align: right;
+}
+
+.signalTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+
+.signalTable th,
+.signalTable td {
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.signalTable th {
+  color: rgba(226, 232, 240, 0.55);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+}
+
+.signalTable td:nth-child(3),
+.signalTable td:nth-child(4),
+.signalTable td:nth-child(5) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.signalTable th:nth-child(3),
+.signalTable th:nth-child(4),
+.signalTable th:nth-child(5) {
+  text-align: right;
+}
+
+.good {
+  color: #00ff88;
+}
+
+.bad {
+  color: #ff6b6b;
+}
+
+.neutral {
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: rgba(226, 232, 240, 0.55);
+}
+
+.footer button {
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 6px;
+  padding: 0.35rem 0.7rem;
+  color: rgba(226, 232, 240, 0.85);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.footer button:hover {
+  background: rgba(148, 163, 184, 0.15);
+}
+
+.errorBanner {
+  background: rgba(255, 68, 68, 0.08);
+  border: 1px solid rgba(255, 68, 68, 0.35);
+  border-radius: 10px;
+  padding: 0.9rem;
+  color: #ff8080;
+}
+
+.skeleton {
+  background: rgba(148, 163, 184, 0.1);
+  border-radius: 6px;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}

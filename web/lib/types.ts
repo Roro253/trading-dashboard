@@ -84,3 +84,27 @@ export interface PcrResponse {
   asOf: string;
   source: 'cboe';
 }
+
+export type ShouldITradeDecision = 'YES' | 'CAUTION' | 'NO';
+
+export interface SignalSnapshot {
+  name: string;
+  bucket: string;
+  value: number | null;
+  zscore: number | null;
+  bucket_score: number;
+  inv_vol_weight: number;
+}
+
+export interface ShouldITradeResponse {
+  generated_at: string;
+  decision: ShouldITradeDecision;
+  market_quality_score: number;
+  composite_raw: number;
+  market_quality_is_percentile: boolean;
+  bucket_scores: Record<string, number>;
+  triggered_kill_switches: string[];
+  reason_codes: string[];
+  signals: SignalSnapshot[];
+  degraded_feeds: string[];
+}

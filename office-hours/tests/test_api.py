@@ -31,6 +31,7 @@ def _canned(decision: str = "CAUTION", score: float = 65.0) -> PipelineResult:
         decision=decision,
         market_quality_score=score,
         composite_raw=score,
+        market_quality_is_percentile=False,
         bucket_scores={"credit_liquidity": 70.0, "vol_term_structure": 60.0},
         triggered_kill_switches=[],
         reason_codes=[f"score:{score:.1f}"],

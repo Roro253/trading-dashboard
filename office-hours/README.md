@@ -11,14 +11,32 @@ office-hours/
 ├── SPEC.md                 methodology: inputs, weights, kill-switches, decision logic
 ├── adapters/               data source clients (httpx, testable)
 │   ├── fred.py             credit/liquidity bucket (HY OAS, IG OAS, net liquidity, SOFR)
-│   └── yahoo.py            vol term structure + cross-asset (^VIX, ^VIX3M, ^VVIX, ^MOVE, ...)
+│   ├── yahoo.py            vol term structure + cross-asset (^VIX, ^VIX3M, ^VVIX, ^MOVE, ...)
+│   └── breadth.py          McClellan, net new H-L, AD line, equity P/C (via Yahoo)
 ├── scoring/                pure-function scoring engine
 │   ├── normalize.py        rolling z-score, bucket-score mapping, percentile rank
 │   ├── composite.py        bucket weights + weighted sum
 │   └── decision.py         YES/CAUTION/NO + kill-switches + calendar downgrade
-├── tests/                  pytest + httpx.MockTransport — no network
+├── pipeline.py             adapters -> signals -> bucket scores -> decision
+├── api.py                  FastAPI router exposing /should-i-trade
+├── tests/                  pytest + httpx.MockTransport + FastAPI TestClient, no network
 └── README.md
 ```
+
+## Running the service locally
+
+```bash
+pip install fastapi httpx pandas numpy pytest pytest-asyncio
+export FRED_API_KEY=your_free_key_from_stlouisfed_org
+
+cd office-hours
+PYTHONPATH=. uvicorn api:app --port 8001 --reload
+curl http://localhost:8001/should-i-trade | jq
+curl http://localhost:8001/should-i-trade/health | jq
+```
+
+Without a FRED key the live endpoint returns a structured 503; `/health`
+still responds and reports `fred_configured: false`.
 
 ## Running tests
 
@@ -30,21 +48,22 @@ python3 -m pytest office-hours/tests -v
 
 `tests/conftest.py` puts `office-hours/` on `sys.path`, so tests import the subpackages directly (`from scoring import ...`, `from adapters.fred import ...`). The hyphenated folder is not itself a Python package — that's intentional; the subpackages are.
 
-Expected: 22 tests pass in ~1s.
+Expected: 32 tests pass in ~3s.
 
 ## What this does NOT have yet
 
-Intentionally deferred to keep this PR focused:
+Intentionally deferred to keep each iteration focused:
 
-- Breadth adapter (StockCharts / `$NYMO`, `$NYSI`, `$CPCE`, `$SPXA50R`) — no clean free API, need to decide on scrape vs paid
-- Dealer GEX adapter — SpotGamma/menthorq free chart scrape vs paid tier
-- CFTC COT adapter
-- NAAIM weekly adapter
-- Execution Window Score implementation
-- FastAPI router (`api.py`) that assembles everything and serves `/api/should-i-trade`
-- Frontend panel in `web/` (needs a charting lib decision: Recharts vs Lightweight Charts)
+- `% stocks above 50d MA` (`$SPXA50R`) — no clean free API; defer to a
+  constituent-loop via the existing Polygon client when we move into `server/`.
+- Dealer GEX adapter — SpotGamma/menthorq free chart scrape vs paid tier.
+- CFTC COT adapter.
+- NAAIM weekly adapter.
+- Execution Window Score implementation.
+- Persistent history store needed to percentile-map the composite (right now `market_quality_score` is the raw composite; the percentile map is ready in `scoring.normalize.percentile_rank` but needs a rolling composite series).
+- Frontend panel in `web/` (needs a charting lib decision: Recharts vs Lightweight Charts).
 
-Each of these becomes its own focused iteration once the foundation here is reviewed.
+Each of these becomes its own focused iteration.
 
 ## Integration checklist (future)
 
